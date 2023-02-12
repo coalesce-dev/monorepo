@@ -2,7 +2,10 @@
   "$schema": "./node_modules/nx/schemas/workspace-schema.json",
   "version": 2,
   "projects": {
+    "core": "packages/core",
     "grid-worker": "packages/grid-worker",
-    "grid-worker-e2e": "packages/grid-worker-e2e"
+    "grid-worker-e2e": "packages/grid-worker-e2e",
+    "store": "packages/store",
+    "worker": "packages/worker"
   }
 }

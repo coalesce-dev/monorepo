@@ -1,40 +1,39 @@
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import styles from './app.module.css';
 import { useCallback, useEffect, useState } from 'react';
-import {appendItem, removeItem, requestData, subscribeEvent} from './SharedWorkerThing';
-import {applyPatches} from "immer";
-import {DataUpdatedEvent} from "../types/Events";
+import { storeClient } from './store';
+import { StoreState } from '../schema';
 
 export function App() {
-  const [data, setData] = useState<number[]>([-1]);
-
-  const updateData = useCallback(() => {
-    requestData().then((d) => {
-      console.log('Component received data:', d);
-      setData(d);
-    });
-  }, []);
-
-  useEffect(() => subscribeEvent("info", updateData));
-
-  useEffect(() => {
-    updateData();
-    return subscribeEvent<DataUpdatedEvent>("update", (data) => {
-      setData(v => applyPatches(v, data.patches));
-    });
-  }, []);
+  const [value, setValue] = useState<StoreState['valueA']>(() =>
+    storeClient.getValue('valueA')
+  );
 
   const addItem = useCallback(() => {
-    appendItem(Math.random());//.then(updateData);
+    storeClient
+      .mutateValue('valueA', (d) => void console.log('INC:', d.counter++))
+      .catch(console.error);
+    // appendItem(Math.random());//.then(updateData);
   }, []);
+
+  useEffect(
+    () =>
+      storeClient.subscribeKeyValueChange('valueA', () =>
+        setValue(storeClient.getValue('valueA'))
+      ),
+    []
+  );
+
+  const removeItem = useCallback(() => {}, []);
 
   return (
     <>
       <button onClick={addItem}>Add</button>
+      <div>{value.counter}</div>
       <ul>
-        {data.map((d, index) => (
-          <li>{d}<button onClick={() => removeItem(index)}>X</button></li>
-        ))}
+        {/*{data.map((d, index) => (*/}
+        {/*  <li>{d}<button onClick={() => removeItem(index)}>X</button></li>*/}
+        {/*))}*/}
       </ul>
     </>
   );

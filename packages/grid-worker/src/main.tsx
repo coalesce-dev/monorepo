@@ -1,9 +1,8 @@
 import { StrictMode } from 'react';
 import * as ReactDOM from 'react-dom/client';
-import "./app/SharedWorkerThing";
 
 import App from './app/app';
-import {enablePatches} from "immer";
+import { enablePatches } from 'immer';
 
 enablePatches();
 

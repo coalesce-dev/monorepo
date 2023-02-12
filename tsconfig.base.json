@@ -10,12 +10,14 @@
     "importHelpers": true,
     "target": "es2015",
     "module": "esnext",
-    "lib": ["es2017", "dom"],
+    "lib": ["es2019", "dom"],
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@coalesce-data/query": ["packages/query/src/index.ts"]
+      "@coalesce.dev/store": ["packages/store/src/index.ts"],
+      "@coalesce.dev/store-core": ["packages/core/src/index.ts"],
+      "@coalesce.dev/store-worker": ["packages/worker/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]
