@@ -1,0 +1,83 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/grid-worker/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nrwl/web:webpack",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "compiler": "babel",
+        "outputPath": "dist/packages/grid-worker",
+        "index": "packages/grid-worker/src/index.html",
+        "baseHref": "/",
+        "main": "packages/grid-worker/src/main.tsx",
+        "polyfills": "packages/grid-worker/src/polyfills.ts",
+        "tsConfig": "packages/grid-worker/tsconfig.app.json",
+        "assets": [
+          "packages/grid-worker/src/favicon.ico",
+          "packages/grid-worker/src/assets"
+        ],
+        "styles": ["packages/grid-worker/src/styles.css"],
+        "scripts": [],
+        "webpackConfig": "@nrwl/react/plugins/webpack"
+      },
+      "configurations": {
+        "development": {
+          "extractLicenses": false,
+          "optimization": false,
+          "sourceMap": true,
+          "vendorChunk": true
+        },
+        "production": {
+          "fileReplacements": [
+            {
+              "replace": "packages/grid-worker/src/environments/environment.ts",
+              "with": "packages/grid-worker/src/environments/environment.prod.ts"
+            }
+          ],
+          "optimization": true,
+          "outputHashing": "all",
+          "sourceMap": false,
+          "namedChunks": false,
+          "extractLicenses": true,
+          "vendorChunk": false
+        }
+      }
+    },
+    "serve": {
+      "executor": "@nrwl/web:dev-server",
+      "defaultConfiguration": "development",
+      "options": {
+        "buildTarget": "grid-worker:build",
+        "hmr": true
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "grid-worker:build:development"
+        },
+        "production": {
+          "buildTarget": "grid-worker:build:production",
+          "hmr": false
+        }
+      }
+    },
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["packages/grid-worker/**/*.{ts,tsx,js,jsx}"]
+      }
+    },
+    "test": {
+      "executor": "@nrwl/jest:jest",
+      "outputs": ["coverage/packages/grid-worker"],
+      "options": {
+        "jestConfig": "packages/grid-worker/jest.config.ts",
+        "passWithNoTests": true
+      }
+    }
+  },
+  "tags": []
+}
