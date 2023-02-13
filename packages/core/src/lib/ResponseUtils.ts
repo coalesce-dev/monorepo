@@ -2,6 +2,7 @@ import {
   ErrorResponse,
   GetFullValueResponse,
   RequestMessage,
+  SelectValueResponse,
   SuccessResponse,
 } from '@coalesce.dev/store-core';
 
@@ -20,6 +21,18 @@ export function createFullValueResponse(
   return {
     stype: 'r',
     type: 'fv',
+    id: req.id,
+    data: value,
+  };
+}
+
+export function createSelectValueResponse(
+  req: RequestMessage,
+  value: SelectValueResponse['data']
+): SelectValueResponse {
+  return {
+    stype: 'r',
+    type: 'sv',
     id: req.id,
     data: value,
   };

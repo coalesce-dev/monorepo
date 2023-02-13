@@ -8,7 +8,12 @@ import {
   createFullValueResponse,
   createSuccessResponse,
   EventMessage,
+  SharedStorePlugin,
+  Selector,
+  createSelectValueResponse,
+  ISharedStore,
 } from '@coalesce.dev/store-core';
+import { get, set } from 'idb-keyval';
 
 enablePatches();
 
@@ -19,26 +24,62 @@ function retargetPatches(patches: Patch[], key: string): Patch[] {
   }));
 }
 
-export class SharedStore<T extends RootState> {
+type Plugins<T extends Record<string, unknown>> = {
+  [PluginId in keyof T & string]: SharedStorePlugin<T[PluginId]>;
+};
+
+export class SharedStore<
+  T extends RootState,
+  EntryTypes extends Record<string, unknown> = {}
+> implements ISharedStore<T, EntryTypes>
+{
   private _ports = new Set<StorePort<T>>();
   private readonly _instanceId: string;
-  private _state: RootState;
-  private readonly _schema: SharedStoreSchema<T>;
+  private _state!: T;
+  private readonly _schema: SharedStoreSchema<T, EntryTypes>;
   private _deadPortTimeout = 60_000;
+  private _storageKey = `SStore__${this.storeId}`;
+  private readonly _init: Promise<void>;
+  private _lastWriteTs = 0;
+  private _writeInterval = 1000;
+  private _writeTimeout: number | undefined;
 
-  constructor(storeId: string, schema: SharedStoreSchema<T>) {
+  constructor(
+    public readonly storeId: string,
+    schema: SharedStoreSchema<T, EntryTypes>,
+    private readonly _plugins: Plugins<EntryTypes>
+  ) {
     this._instanceId = createId();
     this._schema = schema;
-    this._state = createInitialState(schema);
-    console.log('Initial State:', this._state);
+    this.startListening();
 
+    this._init = (async () => {
+      const ls = await get(this._storageKey);
+      this._state = { ...createInitialState(schema), ...ls };
+      console.log('Initial State:', this._state);
+    })();
+  }
+
+  private startListening() {
     onconnect = (e) => {
       this._ports.add(
         new StorePort(this, e.ports[0], async (req) => {
+          await this._init;
           switch (req.type) {
             case 'fv': {
               this.getSchemaEntry(req.data);
               return createFullValueResponse(req, this._state[req.data]);
+            }
+            case 'sv': {
+              const entry = this.getSchemaEntry(req.data[0]);
+              if ('pluginId' in entry) {
+                const plugin = this._plugins[entry.pluginId];
+                return createSelectValueResponse(
+                  req,
+                  await plugin.intercept(req.data, entry, this)
+                );
+              }
+              return createFullValueResponse(req, this.select(req.data));
             }
             case 'm': {
               const entry = this.getSchemaEntry(req.data.key);
@@ -60,14 +101,42 @@ export class SharedStore<T extends RootState> {
     };
   }
 
-  private applyPatches(patches: Patch[]) {
+  public applyPatches(patches: Patch[]) {
     this._state = applyPatches(this._state, patches);
-    console.log('Patches:', patches, 'New State:', this._state);
     this.broadcastEvent({
       stype: 'e',
       type: 'm',
       data: patches,
     });
+    if (!this._writeTimeout) {
+      this._writeTimeout = setTimeout(async () => {
+        await this.persist();
+      }, this._lastWriteTs - Date.now() + this._writeInterval);
+    }
+  }
+
+  private async persist() {
+    this._lastWriteTs = Date.now();
+    this._writeTimeout = undefined;
+    console.log('PERSISTING...');
+    await set(this._storageKey, this._state);
+    console.log('PERSISTED');
+  }
+
+  public select<T>(path: Selector) {
+    let v: unknown = this.state;
+    for (const part of path) {
+      if (v == null || typeof v !== 'object') {
+        v = undefined;
+        break;
+      }
+      v = (v as Record<string | number, unknown>)?.[part];
+    }
+    return v as T;
+  }
+
+  public get state() {
+    return this._state;
   }
 
   private getSchemaEntry(key: string) {

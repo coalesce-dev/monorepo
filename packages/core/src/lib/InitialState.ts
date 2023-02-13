@@ -7,5 +7,5 @@ export function createInitialState<T extends RootState>(
     Object.entries(schema.entries).map(([k, v]) => {
       return [k, v.initialValue];
     })
-  ) as T;
+  ) as unknown as T;
 }

@@ -18,7 +18,9 @@ import {
   isTimeoutError,
   MutateEvent,
   InfoEvent,
+  Selector,
 } from '@coalesce.dev/store-core';
+import { Path } from 'ts-toolbelt/out/Object/Path';
 
 const DEFAULT_TIMEOUT = 60_000;
 const ALIVE_POLL_INTERVAL_MS = 1000;
@@ -127,10 +129,8 @@ export class SharedStoreClient<T extends RootState> {
 
   private applyPatches(d: Patch[]) {
     this._state = applyPatches(this._state, d);
-    // TODO: notify subscribers
     const affectedKeys = new Set(d.map((v) => v.path[0] as string));
     for (const key of affectedKeys) {
-      console.debug('Key', key, 'affected by mutation');
       const callbacks = this._keyValueChangedCallbacks.get(key);
       if (callbacks) {
         for (const cb of callbacks) {
@@ -151,7 +151,10 @@ export class SharedStoreClient<T extends RootState> {
     return () => void callbacks.delete(callback);
   }
 
-  makeRequest<T>(event: RequestMessage, timeout = DEFAULT_TIMEOUT): Promise<T> {
+  private makeRequest<T>(
+    event: RequestMessage,
+    timeout = DEFAULT_TIMEOUT
+  ): Promise<T> {
     return new Promise((resolve, reject) => {
       const id = setTimeout(() => {
         this._callbacks.delete(id);
@@ -163,7 +166,7 @@ export class SharedStoreClient<T extends RootState> {
     });
   }
 
-  subscribeEvent<Event extends EventMessage>(
+  private subscribeEvent<Event extends EventMessage>(
     type: Event['type'],
     callback: (data: Event['data']) => void
   ) {
@@ -185,7 +188,6 @@ export class SharedStoreClient<T extends RootState> {
       data: key,
       id: -1,
     });
-    console.debug('Key:', key, 'Refreshed:', result);
     this.applyPatches([{ path: [key], op: 'replace', value: result }]);
   }
 
@@ -206,6 +208,14 @@ export class SharedStoreClient<T extends RootState> {
 
   public getValue<Key extends keyof T & string>(key: Key): T[Key] {
     return this._state[key];
+  }
+
+  public selectValue<S extends Selector>(selector: S) {
+    return this.makeRequest<Path<T, S>>({
+      type: 'sv',
+      data: selector,
+      id: -1,
+    });
   }
 
   public waitForSync() {

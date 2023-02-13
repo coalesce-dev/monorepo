@@ -2,7 +2,9 @@
 import styles from './app.module.css';
 import { useCallback, useEffect, useState } from 'react';
 import { storeClient } from './store';
-import { StoreState } from '../schema';
+import { StoreState, Todo } from '../schema';
+import { TodoCard } from './TodoCard';
+import { fetchValue } from './FetchValue';
 
 export function App() {
   const [value, setValue] = useState<StoreState['valueA']>(() =>
@@ -13,7 +15,11 @@ export function App() {
     storeClient
       .mutateValue('valueA', (d) => void console.log('INC:', d.counter++))
       .catch(console.error);
-    // appendItem(Math.random());//.then(updateData);
+  }, []);
+
+  const [todos, setTodos] = useState<Todo[]>([]);
+  useEffect(() => {
+    fetchValue(storeClient, 'todoList', []).then(setTodos);
   }, []);
 
   useEffect(
@@ -24,17 +30,13 @@ export function App() {
     []
   );
 
-  const removeItem = useCallback(() => {}, []);
-
   return (
     <>
       <button onClick={addItem}>Add</button>
       <div>{value.counter}</div>
-      <ul>
-        {/*{data.map((d, index) => (*/}
-        {/*  <li>{d}<button onClick={() => removeItem(index)}>X</button></li>*/}
-        {/*))}*/}
-      </ul>
+      {todos.map((todo) => (
+        <TodoCard key={todo.id} id={todo.id} />
+      ))}
     </>
   );
 }

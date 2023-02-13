@@ -1,6 +1,10 @@
 import { Patch } from 'immer';
 import { AnyArray, AnyObject } from 'immer/dist/types/types-internal';
 
+export type Selector =
+  | readonly [string, ...(string | number)[]]
+  | readonly [string];
+
 type Request<Type extends string, Data> = Data extends void
   ? {
       id: number;
@@ -39,6 +43,7 @@ type Event<Type extends string, Data> = Data extends void
 export type KeepAliveRequest = Request<'a', void>;
 
 export type GetFullValueRequest = Request<'fv', string>;
+export type SelectValueRequest = Request<'sv', Selector>;
 
 export type MutateValueRequest = Request<
   'm',
@@ -50,6 +55,7 @@ export interface SuccessResponse extends Response<'s', void> {
 }
 
 export type GetFullValueResponse = Response<'fv', AnyObject | AnyArray>;
+export type SelectValueResponse = Response<'sv', unknown>;
 
 export type ErrorResponse = Response<'e', unknown>;
 
@@ -66,9 +72,11 @@ export type MutateEvent = Event<'m', Patch[]>;
 export type RequestMessage =
   | KeepAliveRequest
   | GetFullValueRequest
-  | MutateValueRequest;
+  | MutateValueRequest
+  | SelectValueRequest;
 export type ResponseMessage =
   | SuccessResponse
   | ErrorResponse
-  | GetFullValueResponse;
+  | GetFullValueResponse
+  | SelectValueResponse;
 export type EventMessage = InfoEvent | MutateEvent;

@@ -5,6 +5,7 @@
     "core": "packages/core",
     "grid-worker": "packages/grid-worker",
     "grid-worker-e2e": "packages/grid-worker-e2e",
+    "plugin-http": "packages/plugin-http",
     "store": "packages/store",
     "worker": "packages/worker"
   }
