@@ -25,6 +25,7 @@ import { Path } from 'ts-toolbelt/out/Object/Path';
 const DEFAULT_TIMEOUT = 60_000;
 const ALIVE_POLL_INTERVAL_MS = 1000;
 const ALIVE_POLL_TIMEOUT_MS = 500;
+const ALIVE_POLL_INIT_TIMEOUT_MS = DEFAULT_TIMEOUT;
 
 enablePatches();
 
@@ -68,6 +69,8 @@ export class SharedStoreClient<T extends RootState> {
   }
 
   async reset() {
+    const startTime = performance.now();
+    console.debug('Sync start...');
     this._isSynced = false;
     this._worker?.port?.close();
 
@@ -80,8 +83,9 @@ export class SharedStoreClient<T extends RootState> {
     this._worker = this._workerFactory();
 
     clearInterval(this._alivePollHandle);
-    this._alivePollHandle = setInterval(() => {
-      this.makeRequest({ type: 'a', id: -1 }, ALIVE_POLL_TIMEOUT_MS).catch(
+
+    const sendKeepAlive = (timeout = ALIVE_POLL_TIMEOUT_MS) => {
+      return this.makeRequest({ type: 'a', id: -1 }, timeout, true).catch(
         (err) => {
           if (isTerminatedError(err)) {
             return Promise.resolve(undefined);
@@ -95,7 +99,7 @@ export class SharedStoreClient<T extends RootState> {
           }
         }
       );
-    }, ALIVE_POLL_INTERVAL_MS) as unknown as number;
+    };
 
     this._worker.port.onmessage = (e) => {
       const event = e.data as ResponseMessage | EventMessage;
@@ -120,11 +124,19 @@ export class SharedStoreClient<T extends RootState> {
       }
     };
 
+    await sendKeepAlive(ALIVE_POLL_INIT_TIMEOUT_MS);
+
+    this._alivePollHandle = setInterval(
+      () => sendKeepAlive(),
+      ALIVE_POLL_INTERVAL_MS
+    ) as unknown as number;
+
     for (const entryKey in this._schema.entries) {
       await this.refreshFullValue(entryKey);
     }
     this._isSynced = true;
-    console.debug('Sync complete.');
+    const endTime = performance.now();
+    console.debug('Sync time:', endTime - startTime);
   }
 
   private applyPatches(d: Patch[]) {
@@ -151,14 +163,16 @@ export class SharedStoreClient<T extends RootState> {
     return () => void callbacks.delete(callback);
   }
 
-  private makeRequest<T>(
+  private async makeRequest<T>(
     event: RequestMessage,
-    timeout = DEFAULT_TIMEOUT
+    timeout = DEFAULT_TIMEOUT,
+    bypassSyncBarrier = false
   ): Promise<T> {
+    if (!bypassSyncBarrier) await this._syncPromise;
     return new Promise((resolve, reject) => {
       const id = setTimeout(() => {
         this._callbacks.delete(id);
-        console.error('Timeout on request', id, event);
+        console.error('Timeout on request', id, event, timeout);
         reject(ERR_TIMEOUT);
       }, timeout) as unknown as number;
       this._callbacks.set(id, [resolve as (d: unknown) => void, reject]);
@@ -183,11 +197,16 @@ export class SharedStoreClient<T extends RootState> {
   }
 
   private async refreshFullValue(key: keyof T & string) {
-    const result = await this.makeRequest({
-      type: 'fv',
-      data: key,
-      id: -1,
-    });
+    console.debug('Syncing', key);
+    const result = await this.makeRequest(
+      {
+        type: 'fv',
+        data: key,
+        id: -1,
+      },
+      DEFAULT_TIMEOUT,
+      true
+    );
     this.applyPatches([{ path: [key], op: 'replace', value: result }]);
   }
 
@@ -195,7 +214,10 @@ export class SharedStoreClient<T extends RootState> {
     key: Key,
     recipe: (d: Draft<T[Key]>) => void
   ) {
-    const [, patches] = produceWithPatches(this._state[key], recipe);
+    const [, patches] = produceWithPatches(
+      this._state[key],
+      (d) => void recipe(d)
+    );
     await this.makeRequest({
       type: 'm',
       data: {
@@ -216,6 +238,18 @@ export class SharedStoreClient<T extends RootState> {
       data: selector,
       id: -1,
     });
+  }
+
+  public selectLocalValue<S extends Selector>(selector: S) {
+    let v: unknown = this._state;
+    for (const part of selector) {
+      if (v == null || typeof v !== 'object') {
+        v = undefined;
+        break;
+      }
+      v = (v as Record<string | number, unknown>)?.[part];
+    }
+    return v as Path<T, S>;
   }
 
   public waitForSync() {

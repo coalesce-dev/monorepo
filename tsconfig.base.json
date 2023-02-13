@@ -18,6 +18,10 @@
       "@coalesce.dev/store": ["packages/store/src/index.ts"],
       "@coalesce.dev/store-core": ["packages/core/src/index.ts"],
       "@coalesce.dev/store-http": ["packages/plugin-http/src/index.ts"],
+      "@coalesce.dev/store-http-react": [
+        "packages/plugin-http-react/src/index.ts"
+      ],
+      "@coalesce.dev/store-react": ["packages/store-react/src/index.ts"],
       "@coalesce.dev/store-worker": ["packages/worker/src/index.ts"]
     }
   },

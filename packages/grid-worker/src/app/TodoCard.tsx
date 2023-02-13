@@ -1,28 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Todo, User } from '../schema';
-import { storeClient } from './store';
-import { fetchValue } from './FetchValue';
+import { useTodo, useUser } from './storeHooks';
 
 export function TodoCard({ id }: { id: number }) {
-  const [todo, setTodo] = useState<Todo | undefined>();
   const [isVisible, setIsVisible] = useState(false);
-  useEffect(() => {
-    if (isVisible) {
-      fetchValue(storeClient, 'todo', { id })
-        .then(setTodo)
-        .catch(() => setIsVisible(false));
-    }
-  }, [id, isVisible]);
 
-  const [user, setUser] = useState<User | undefined>();
-  useEffect(() => {
-    if (isVisible) {
-      if (todo)
-        fetchValue(storeClient, 'user', { id: todo.userId })
-          .then(setUser)
-          .catch(() => setIsVisible(false));
-    }
-  }, [todo?.userId, isVisible]);
+  const todo = useTodo(isVisible ? id : undefined);
+  const user = useUser(isVisible && todo ? todo.userId : undefined);
 
   const [div, setDiv] = useState<HTMLDivElement | null>(null);
 
@@ -48,7 +31,7 @@ export function TodoCard({ id }: { id: number }) {
       {todo ? (
         <>
           <h2>{todo.title}</h2>
-          <h3>{user ? `${user.name} (${user.username})` : 'Loading'}</h3>
+          <h3>{user ? `${user.name} (${user.username})` : 'Loading...'}</h3>
           <p>Completed: {todo.completed ? 'Y' : 'N'}</p>
         </>
       ) : (

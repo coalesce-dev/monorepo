@@ -1,42 +1,43 @@
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import styles from './app.module.css';
-import { useCallback, useEffect, useState } from 'react';
-import { storeClient } from './store';
-import { StoreState, Todo } from '../schema';
-import { TodoCard } from './TodoCard';
-import { fetchValue } from './FetchValue';
+import { useCallback } from 'react';
+import { useTypedSharedState, useTypedSharedValue } from './storeHooks';
+import { useSharedStore } from '@coalesce.dev/store-react';
+import { StoreState } from '../schema';
+import { AlbumList } from './AlbumList';
 
 export function App() {
-  const [value, setValue] = useState<StoreState['valueA']>(() =>
-    storeClient.getValue('valueA')
-  );
-
+  const [value, setValue] = useTypedSharedState(['valueA', 'counter'] as const);
+  const list = useTypedSharedValue(['list'] as const);
+  const store = useSharedStore<StoreState>();
   const addItem = useCallback(() => {
-    storeClient
-      .mutateValue('valueA', (d) => void console.log('INC:', d.counter++))
-      .catch(console.error);
-  }, []);
-
-  const [todos, setTodos] = useState<Todo[]>([]);
-  useEffect(() => {
-    fetchValue(storeClient, 'todoList', []).then(setTodos);
-  }, []);
-
-  useEffect(
-    () =>
-      storeClient.subscribeKeyValueChange('valueA', () =>
-        setValue(storeClient.getValue('valueA'))
-      ),
-    []
-  );
-
+    setValue(value + 1);
+  }, [value]);
   return (
     <>
-      <button onClick={addItem}>Add</button>
-      <div>{value.counter}</div>
-      {todos.map((todo) => (
-        <TodoCard key={todo.id} id={todo.id} />
-      ))}
+      <button onClick={addItem}>Increment</button>
+      <div>{value}</div>
+      <button
+        onClick={() => store.mutateValue('list', (d) => d.push(Math.random()))}
+      >
+        Add Item
+      </button>
+      <ul>
+        {list.map((l, i) => (
+          <li key={i}>
+            {l}
+            <button
+              onClick={() => store.mutateValue('list', (d) => d.splice(i, 1))}
+            >
+              X
+            </button>
+          </li>
+        ))}
+      </ul>
+      {/*{todos?.map((todo) => (*/}
+      {/*  <TodoCard key={todo.id} id={todo.id} />*/}
+      {/*))}*/}
+      <AlbumList />
     </>
   );
 }

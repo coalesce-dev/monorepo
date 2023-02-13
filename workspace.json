@@ -6,7 +6,9 @@
     "grid-worker": "packages/grid-worker",
     "grid-worker-e2e": "packages/grid-worker-e2e",
     "plugin-http": "packages/plugin-http",
+    "plugin-http-react": "packages/plugin-http-react",
     "store": "packages/store",
+    "store-react": "packages/store-react",
     "worker": "packages/worker"
   }
 }
