@@ -43,6 +43,7 @@ export class SharedStore<
   private _lastWriteTs = 0;
   private _writeInterval = 1000;
   private _writeTimeout: number | undefined;
+  private _locks = new Map<string, PromiseLike<unknown>>();
 
   constructor(
     public readonly storeId: string,
@@ -72,12 +73,18 @@ export class SharedStore<
             }
             case 'sv': {
               const entry = this.getSchemaEntry(req.data[0]);
+              // TODO: this should probably be locking at any parent as well
+              const lockKey = JSON.stringify(req.data);
+              while (this._locks.has(lockKey)) {
+                await this._locks.get(lockKey);
+              }
               if ('pluginId' in entry) {
                 const plugin = this._plugins[entry.pluginId];
-                return createSelectValueResponse(
-                  req,
-                  await plugin.intercept(req.data, entry, this)
-                );
+                const intercept = plugin.intercept(req.data, entry, this);
+                this._locks.set(lockKey, intercept);
+                const val = await intercept;
+                this._locks.delete(lockKey);
+                return createSelectValueResponse(req, val);
               }
               return createFullValueResponse(req, this.select(req.data));
             }

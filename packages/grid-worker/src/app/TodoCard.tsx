@@ -8,7 +8,9 @@ export function TodoCard({ id }: { id: number }) {
   const [isVisible, setIsVisible] = useState(false);
   useEffect(() => {
     if (isVisible) {
-      fetchValue(storeClient, 'todo', { id }).then(setTodo);
+      fetchValue(storeClient, 'todo', { id })
+        .then(setTodo)
+        .catch(() => setIsVisible(false));
     }
   }, [id, isVisible]);
 
@@ -16,7 +18,9 @@ export function TodoCard({ id }: { id: number }) {
   useEffect(() => {
     if (isVisible) {
       if (todo)
-        fetchValue(storeClient, 'user', { id: todo.userId }).then(setUser);
+        fetchValue(storeClient, 'user', { id: todo.userId })
+          .then(setUser)
+          .catch(() => setIsVisible(false));
     }
   }, [todo?.userId, isVisible]);
 
