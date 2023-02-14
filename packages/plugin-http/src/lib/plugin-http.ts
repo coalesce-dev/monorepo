@@ -6,8 +6,8 @@ import {
   SharedStoreSchemaEntry,
 } from '@coalesce.dev/store-core';
 
-export interface HttpPluginConfig {
-  query: string | ((data: any) => string);
+export interface HttpPluginConfig<R = void> {
+  query: string | ((data: R) => string);
   expireMs?: number;
 }
 
@@ -16,6 +16,23 @@ const JSON_CONTENT_TYPE = /^application\/(.+\+)?json(;.*)?$/;
 export interface HttpPluginData<Value> {
   ts: number;
   v: Value;
+}
+
+export function createHttpEntry<V, R>(
+  config: HttpPluginConfig<R>,
+  pluginId = 'http'
+): SharedStoreSchemaEntry<
+  Record<string, HttpPluginData<V>>,
+  string,
+  HttpPluginConfig<R>
+> {
+  return {
+    initialHydrate: false,
+    allowDirectMutation: false,
+    initialValue: {},
+    pluginId,
+    config,
+  };
 }
 
 export class HttpPlugin implements SharedStorePlugin<HttpPluginConfig> {

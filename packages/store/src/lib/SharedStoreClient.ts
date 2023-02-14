@@ -132,7 +132,8 @@ export class SharedStoreClient<T extends RootState> {
     ) as unknown as number;
 
     for (const entryKey in this._schema.entries) {
-      await this.refreshFullValue(entryKey);
+      if (this._schema.entries[entryKey].initialHydrate !== false)
+        await this.refreshFullValue(entryKey);
     }
     this._isSynced = true;
     const endTime = performance.now();

@@ -7,6 +7,7 @@ export type SharedStoreSchemaEntry<
 > = {
   initialValue: Value;
   allowDirectMutation?: boolean;
+  initialHydrate?: boolean;
 } & (PluginId extends string
   ? {
       pluginId: PluginId;
