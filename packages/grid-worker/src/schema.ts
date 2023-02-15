@@ -76,6 +76,7 @@ export const schema: SharedStoreSchema<StoreState, { http: HttpPluginConfig }> =
       albumList: createHttpEntry({
         query: `https://jsonplaceholder.typicode.com/albums`,
         expireMs: 120000,
+        autoRefresh: true,
       }),
       album: createHttpEntry({
         query: (req: { id: number }) =>
@@ -86,6 +87,7 @@ export const schema: SharedStoreSchema<StoreState, { http: HttpPluginConfig }> =
         query: (req: { id: number }) =>
           `https://jsonplaceholder.typicode.com/album/${req.id}/photos`,
         expireMs: 120000,
+        autoRefresh: true,
       }),
     },
   };

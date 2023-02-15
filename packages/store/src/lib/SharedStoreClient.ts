@@ -23,8 +23,8 @@ import {
 import { Path } from 'ts-toolbelt/out/Object/Path';
 
 const DEFAULT_TIMEOUT = 60_000;
-const ALIVE_POLL_INTERVAL_MS = 1000;
-const ALIVE_POLL_TIMEOUT_MS = 500;
+const ALIVE_POLL_INTERVAL_MS = 2000;
+const ALIVE_POLL_TIMEOUT_MS = 1500;
 const ALIVE_POLL_INIT_TIMEOUT_MS = DEFAULT_TIMEOUT;
 
 enablePatches();
@@ -141,7 +141,9 @@ export class SharedStoreClient<T extends RootState> {
   }
 
   private applyPatches(d: Patch[]) {
+    console.debug('PATCH', d);
     this._state = applyPatches(this._state, d);
+    console.debug('NEW STATE', this._state);
     const affectedKeys = new Set(d.map((v) => v.path[0] as string));
     for (const key of affectedKeys) {
       const callbacks = this._keyValueChangedCallbacks.get(key);
@@ -233,12 +235,20 @@ export class SharedStoreClient<T extends RootState> {
     return this._state[key];
   }
 
-  public selectValue<S extends Selector>(selector: S) {
-    return this.makeRequest<Path<T, S>>({
+  public async selectValue<S extends Selector>(selector: S) {
+    const value = await this.makeRequest<Path<T, S>>({
       type: 'sv',
       data: selector,
       id: -1,
     });
+    this.applyPatches([
+      {
+        path: selector as unknown as (string | number)[],
+        op: 'replace',
+        value,
+      },
+    ]);
+    return value;
   }
 
   public selectLocalValue<S extends Selector>(selector: S) {

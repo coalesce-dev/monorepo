@@ -12,6 +12,8 @@ import {
   Selector,
   createSelectValueResponse,
   ISharedStore,
+  SelectValueRequest,
+  SelectValueResponse,
 } from '@coalesce.dev/store-core';
 import { get, set } from 'idb-keyval';
 
@@ -72,21 +74,7 @@ export class SharedStore<
               return createFullValueResponse(req, this._state[req.data]);
             }
             case 'sv': {
-              const entry = this.getSchemaEntry(req.data[0]);
-              // TODO: this should probably be locking at any parent as well
-              const lockKey = JSON.stringify(req.data);
-              while (this._locks.has(lockKey)) {
-                await this._locks.get(lockKey);
-              }
-              if ('pluginId' in entry) {
-                const plugin = this._plugins[entry.pluginId];
-                const intercept = plugin.intercept(req.data, entry, this);
-                this._locks.set(lockKey, intercept);
-                const val = await intercept;
-                this._locks.delete(lockKey);
-                return createSelectValueResponse(req, val);
-              }
-              return createFullValueResponse(req, this.select(req.data));
+              return await this.selectValueAsync(req);
             }
             case 'm': {
               const entry = this.getSchemaEntry(req.data.key);
@@ -106,6 +94,37 @@ export class SharedStore<
         })
       );
     };
+  }
+
+  public async selectValueAsync(
+    req: SelectValueRequest
+  ): Promise<SelectValueResponse> {
+    const entry = this.getSchemaEntry(req.data[0]);
+    // TODO: this should probably be locking at any parent as well
+    const lockKey = JSON.stringify(req.data);
+    console.debug('Req', lockKey);
+    while (this._locks.has(lockKey)) {
+      console.debug('Lock on', lockKey);
+      await this._locks.get(lockKey);
+      console.debug('Unlock on', lockKey);
+    }
+    if ('pluginId' in entry) {
+      const plugin = this._plugins[entry.pluginId];
+      const intercept = plugin.intercept(req.data, entry, this);
+      this._locks.set(lockKey, intercept);
+      const val = await intercept;
+      this._locks.delete(lockKey);
+      console.debug(
+        'Plugin',
+        entry.pluginId,
+        'handled',
+        lockKey,
+        'returning',
+        val
+      );
+      return createSelectValueResponse(req, val);
+    }
+    return createSelectValueResponse(req, this.select(req.data));
   }
 
   public applyPatches(patches: Patch[]) {
@@ -172,7 +191,11 @@ export class SharedStore<
     }
   }
 
-  killDeadPort(port: StorePort<T>) {
+  public getWatchCount(path: Selector) {
+    return 1; // TODO
+  }
+
+  public killDeadPort(port: StorePort<T>) {
     console.debug('Killing dead port');
     this._ports.delete(port);
     port.close();

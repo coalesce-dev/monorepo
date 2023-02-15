@@ -1,5 +1,5 @@
 import { RootState } from './SharedStoreSchema';
-import { Selector } from './Messages';
+import { Selector, SelectValueRequest, SelectValueResponse } from './Messages';
 import { Patch } from 'immer';
 
 export interface ISharedStore<
@@ -9,4 +9,6 @@ export interface ISharedStore<
   get state(): T;
   select<T>(path: Selector): T;
   applyPatches(patches: Patch[]): void;
+  selectValueAsync(req: SelectValueRequest): Promise<SelectValueResponse>;
+  getWatchCount(path: Selector): number;
 }
