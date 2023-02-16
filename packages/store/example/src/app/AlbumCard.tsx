@@ -23,7 +23,10 @@ export function AlbumCard({ id }: { id: number }) {
   }, [div]);
 
   return (
-    <div style={{ background: '#eee', minHeight: 200 }} ref={setDiv}>
+    <div
+      style={{ background: '#eee', minHeight: 200, padding: '0.5rem' }}
+      ref={setDiv}
+    >
       {!album ? undefined : (
         <>
           <h2>{album.title}</h2>

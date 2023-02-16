@@ -4,7 +4,7 @@ import { schema } from '../schema';
 export const storeClient = new SharedStoreClient(
   () =>
     new SharedWorker(new URL('../worker', import.meta.url), {
-      name: 'Example Store Worker',
+      name: 'example-worker',
     }),
   schema
 );

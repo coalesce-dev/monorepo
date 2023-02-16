@@ -19,7 +19,10 @@ export function PhotoCard({ photo }: { photo: Photo }) {
   }, [div]);
 
   return (
-    <div style={{ background: '#ddd', minHeight: 200 }} ref={setDiv}>
+    <div
+      style={{ background: '#ddd', minHeight: 200, padding: '0.5rem' }}
+      ref={setDiv}
+    >
       <h2>{photo.title}</h2>
       {isVisible && (
         <img

@@ -8,7 +8,7 @@ export function useSharedStore<T extends RootState>() {
   const store = useContext(SharedStoreContext);
   if (!store)
     throw new Error('Hook must be called from within a SharedStoreProvider.');
-  return store as SharedStoreClient<T>;
+  return store as unknown as SharedStoreClient<T>;
 }
 
 function useStableArray<T extends readonly unknown[] | null>(array: T): T {
