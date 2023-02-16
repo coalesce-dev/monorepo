@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
-  "npmScope": "coalesce",
+  "npmScope": "coalesce.dev",
   "affected": {
     "defaultBase": "main"
   },
@@ -44,5 +44,5 @@
       }
     }
   },
-  "defaultProject": "grid-worker"
+  "defaultProject": "store-example"
 }

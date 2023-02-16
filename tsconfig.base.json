@@ -15,14 +15,18 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@coalesce.dev/store": ["packages/store/src/index.ts"],
-      "@coalesce.dev/store-core": ["packages/core/src/index.ts"],
-      "@coalesce.dev/store-http": ["packages/plugin-http/src/index.ts"],
-      "@coalesce.dev/store-http-react": [
-        "packages/plugin-http-react/src/index.ts"
+      "@coalesce.dev/store-client": ["packages/store/client/src/index.ts"],
+      "@coalesce.dev/store-client-react": [
+        "packages/store/client-react/src/index.ts"
       ],
-      "@coalesce.dev/store-react": ["packages/store-react/src/index.ts"],
-      "@coalesce.dev/store-worker": ["packages/worker/src/index.ts"]
+      "@coalesce.dev/store-common": ["packages/store/common/src/index.ts"],
+      "@coalesce.dev/store-plugins-http": [
+        "packages/store/plugins/http/src/index.ts"
+      ],
+      "@coalesce.dev/store-plugins-http-react": [
+        "packages/store/plugins/http-react/src/index.ts"
+      ],
+      "@coalesce.dev/store-worker": ["packages/store/worker/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]

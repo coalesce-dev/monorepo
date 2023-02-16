@@ -2,13 +2,13 @@
   "$schema": "./node_modules/nx/schemas/workspace-schema.json",
   "version": 2,
   "projects": {
-    "core": "packages/core",
-    "grid-worker": "packages/grid-worker",
-    "grid-worker-e2e": "packages/grid-worker-e2e",
-    "plugin-http": "packages/plugin-http",
-    "plugin-http-react": "packages/plugin-http-react",
-    "store": "packages/store",
-    "store-react": "packages/store-react",
-    "worker": "packages/worker"
+    "store-client": "packages/store/client",
+    "store-client-react": "packages/store/client-react",
+    "store-common": "packages/store/common",
+    "store-example": "packages/store/example",
+    "store-example-e2e": "packages/store/example-e2e",
+    "store-plugins-http": "packages/store/plugins/http",
+    "store-plugins-http-react": "packages/store/plugins/http-react",
+    "store-worker": "packages/store/worker"
   }
 }
