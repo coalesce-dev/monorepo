@@ -48,12 +48,15 @@ invariant(
   `Could not find "build.options.outputPath" of project "${name}". Is project.json configured  correctly?`
 );
 
+const rootPackage = JSON.parse(readFileSync('package.json', 'utf8'));
+
 process.chdir(outputPath);
 
 // Updating the version in "package.json" before publishing
 try {
   const json = JSON.parse(readFileSync(`package.json`).toString());
   json.version = version;
+  json.license = rootPackage.license;
   writeFileSync(`package.json`, JSON.stringify(json, null, 2));
 } catch (e) {
   console.error(

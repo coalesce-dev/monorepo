@@ -1,7 +1,7 @@
 {
   "name": "coalesce-data",
   "version": "0.0.0",
-  "license": "MIT",
+  "license": "GNU GPLv3",
   "scripts": {},
   "private": true,
   "dependencies": {
