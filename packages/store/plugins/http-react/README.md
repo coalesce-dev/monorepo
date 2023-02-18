@@ -70,3 +70,20 @@ function ExampleComponent() {
   // ...
 }
 ```
+
+#### Suspense
+
+Hooks are also generated with support for suspense. These hooks work similarly, but have `Suspended` appended to their names and are typed to return the schema value (not undefined).
+
+```tsx
+import { useTodoListSuspended } from './storeHooks';
+
+function ExampleComponent() {
+  const todos = useTodoListSuspended(); // will never be undefined
+  // statements following this hook will not be reached until the value is available
+
+  const todoCount = todos.length;
+
+  // ...
+}
+```

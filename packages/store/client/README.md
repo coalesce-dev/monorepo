@@ -10,7 +10,7 @@ If using React, see `@coalesce.dev/store-client-react`.
 
 ### Setup
 
-Setup a schema to be used by the worker and client. For example:
+Set up a schema to be used by the worker and client. For example:
 
 ```ts
 export type StoreState = {
