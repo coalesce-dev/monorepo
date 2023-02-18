@@ -16,7 +16,7 @@
     "publish": {
       "executor": "@nrwl/workspace:run-commands",
       "options": {
-        "command": "node tools/scripts/publish.mjs store {args.ver} {args.tag}"
+        "command": "node tools/scripts/publish.mjs store-client {args.ver} {args.tag}"
       },
       "dependsOn": [
         {
