@@ -10,7 +10,7 @@ import {
   RootState,
 } from '@coalesce.dev/store-common';
 
-type RequestWithoutAlive = Exclude<RequestMessage, KeepAliveRequest>;
+export type RequestWithoutAlive = Exclude<RequestMessage, KeepAliveRequest>;
 
 export class StorePort<T extends RootState> {
   private _hasClosed = false;
@@ -19,7 +19,9 @@ export class StorePort<T extends RootState> {
 
   constructor(
     store: SharedStore<T>,
-    public readonly port: MessagePort,
+    public readonly port:
+      | MessagePort
+      | Pick<typeof globalThis, 'onmessage' | 'postMessage'>,
     onMessage: (
       message: RequestWithoutAlive
     ) => ResponseMessage | PromiseLike<ResponseMessage>
@@ -87,7 +89,9 @@ export class StorePort<T extends RootState> {
     if (this._hasClosed) {
       console.error('Attempted to close already closed port:', this._id);
     }
-    this.port.close();
+    if ('close' in this.port) {
+      this.port.close();
+    }
     this._hasClosed = true;
   }
 }

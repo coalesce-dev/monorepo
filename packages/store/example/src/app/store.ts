@@ -3,9 +3,13 @@ import { schema, StoreState } from '../schema';
 
 export const storeClient = new SharedStoreClient<StoreState>(
   () =>
-    new SharedWorker(new URL('../worker', import.meta.url), {
-      name: 'example-worker',
-    }),
+    'SharedWorker' in globalThis
+      ? new SharedWorker(new URL('../worker', import.meta.url), {
+          name: 'example-worker',
+        })
+      : new Worker(new URL('../worker', import.meta.url), {
+          name: 'example-worker',
+        }),
   schema
 );
 

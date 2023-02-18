@@ -1,5 +1,5 @@
 import { applyPatches, enablePatches, Patch } from 'immer';
-import { StorePort } from './StorePort';
+import { RequestWithoutAlive, StorePort } from './StorePort';
 import {
   RootState,
   SharedStoreSchema,
@@ -64,36 +64,42 @@ export class SharedStore<
   }
 
   private startListening() {
-    onconnect = (e) => {
+    if ('onconnect' in globalThis) {
+      onconnect = (e) => {
+        this._ports.add(
+          new StorePort(this, e.ports[0], this.handleMessage.bind(this))
+        );
+      };
+    } else {
       this._ports.add(
-        new StorePort(this, e.ports[0], async (req) => {
-          await this._init;
-          switch (req.type) {
-            case 'fv': {
-              this.getSchemaEntry(req.data);
-              return createFullValueResponse(req, this._state[req.data]);
-            }
-            case 'sv': {
-              return await this.selectValueAsync(req);
-            }
-            case 'm': {
-              const entry = this.getSchemaEntry(req.data.key);
-              if (!entry.allowDirectMutation) {
-                const message = `Schema does not allow direct mutation of key '${req.data.key}'`;
-                console.error(message);
-                throw new Error(message);
-              }
-              // TODO: should have some kind of incrementing version for each entry? Optimistic lock?
-              //  maybe also a pessimistic option?
-              this.applyPatches(
-                retargetPatches(req.data.patches, req.data.key)
-              );
-              return createSuccessResponse(req);
-            }
-          }
-        })
+        new StorePort(this, globalThis, this.handleMessage.bind(this))
       );
-    };
+    }
+  }
+
+  private async handleMessage(req: RequestWithoutAlive) {
+    await this._init;
+    switch (req.type) {
+      case 'fv': {
+        this.getSchemaEntry(req.data);
+        return createFullValueResponse(req, this._state[req.data]);
+      }
+      case 'sv': {
+        return await this.selectValueAsync(req);
+      }
+      case 'm': {
+        const entry = this.getSchemaEntry(req.data.key);
+        if (!entry.allowDirectMutation) {
+          const message = `Schema does not allow direct mutation of key '${req.data.key}'`;
+          console.error(message);
+          throw new Error(message);
+        }
+        // TODO: should have some kind of incrementing version for each entry? Optimistic lock?
+        //  maybe also a pessimistic option?
+        this.applyPatches(retargetPatches(req.data.patches, req.data.key));
+        return createSuccessResponse(req);
+      }
+    }
   }
 
   public async selectValueAsync(

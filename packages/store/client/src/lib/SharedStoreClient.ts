@@ -31,8 +31,9 @@ const ALIVE_POLL_INIT_TIMEOUT_MS = DEFAULT_TIMEOUT;
 enablePatches();
 
 export class SharedStoreClient<T extends RootState> {
-  private _worker!: SharedWorker;
-  private readonly _workerFactory: () => SharedWorker;
+  private _worker: SharedWorker | null = null;
+  private _comm!: MessagePort | Worker;
+  private readonly _workerFactory: () => SharedWorker | Worker;
   private readonly _schema: SharedStoreSchema<T>;
   private readonly _callbacks = new Map<
     number,
@@ -56,7 +57,10 @@ export class SharedStoreClient<T extends RootState> {
 
   private _stable = new Map<string, TrackedPromise<unknown>>();
 
-  constructor(workerFactory: () => SharedWorker, schema: SharedStoreSchema<T>) {
+  constructor(
+    workerFactory: () => SharedWorker | Worker,
+    schema: SharedStoreSchema<T>
+  ) {
     this._workerFactory = workerFactory;
     this._schema = schema;
     this._state = createInitialState<T>(schema);
@@ -76,6 +80,7 @@ export class SharedStoreClient<T extends RootState> {
     console.debug('Sync start...');
     this._isSynced = false;
     this._worker?.port?.close();
+    if (this._comm && 'terminate' in this._comm) this._comm.terminate();
 
     for (const [id, [, reject]] of Array.from(this._callbacks)) {
       reject(ERR_TERM);
@@ -83,7 +88,14 @@ export class SharedStoreClient<T extends RootState> {
     }
     this._callbacks.clear();
 
-    this._worker = this._workerFactory();
+    const worker = this._workerFactory();
+    if ('terminate' in worker) {
+      this._worker = null;
+      this._comm = worker;
+    } else {
+      this._worker = worker;
+      this._comm = worker.port;
+    }
 
     clearInterval(this._alivePollHandle);
 
@@ -104,7 +116,7 @@ export class SharedStoreClient<T extends RootState> {
       );
     };
 
-    this._worker.port.onmessage = (e) => {
+    this._comm.onmessage = (e) => {
       const event = e.data as ResponseMessage | EventMessage;
       if (event.stype === 'r') {
         // Response
@@ -182,7 +194,7 @@ export class SharedStoreClient<T extends RootState> {
         reject(ERR_TIMEOUT);
       }, timeout) as unknown as number;
       this._callbacks.set(id, [resolve as (d: unknown) => void, reject]);
-      this._worker.port.postMessage({ ...event, id });
+      this._comm.postMessage({ ...event, id });
     });
   }
 
@@ -251,7 +263,6 @@ export class SharedStoreClient<T extends RootState> {
         value,
       },
     ]);
-    await new Promise((resolve) => setTimeout(resolve, Math.random() * 10_000));
     return value;
   }
 
