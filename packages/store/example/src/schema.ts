@@ -50,11 +50,11 @@ export const schema = {
       initialValue: {
         counter: 8,
       },
-      allowDirectMutation: true,
+      allowDirectMutation: true as const,
     },
     list: {
       initialValue: [],
-      allowDirectMutation: true,
+      allowDirectMutation: true as const,
     },
     todo: createHttpEntry<Todo, number>({
       query: (req) => `https://jsonplaceholder.typicode.com/todos/${req}`,

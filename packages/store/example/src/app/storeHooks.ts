@@ -14,7 +14,13 @@ export function useTypedSharedValue<S extends Selector>(
 }
 
 export function useTypedSharedState<S extends Selector>(selector: S) {
-  return useSharedState<StoreState, S>(selector);
+  return useSharedState<StoreState, S>(
+    selector
+  ) as unknown as S[0] extends keyof StoreState
+    ? typeof schema['entries'][S[0]] extends { allowDirectMutation: true }
+      ? ReturnType<typeof useSharedState<StoreState, S>>
+      : never
+    : never;
 }
 
 export const {
