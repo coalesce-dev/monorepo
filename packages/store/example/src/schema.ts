@@ -1,7 +1,5 @@
-import { SharedStoreSchema } from '@coalesce.dev/store-common';
 import {
   createHttpEntry,
-  HttpPluginConfig,
   HttpPluginData,
 } from '@coalesce.dev/store-plugins-http';
 
@@ -45,49 +43,45 @@ export type StoreState = {
   albumPhotosList: Record<string, HttpPluginData<Photo[]>>;
 };
 
-export const schema: SharedStoreSchema<StoreState, { http: HttpPluginConfig }> =
-  {
-    version: 1,
-    entries: {
-      valueA: {
-        initialValue: {
-          counter: 8,
-        },
-        allowDirectMutation: true,
+export const schema = {
+  version: 1,
+  entries: {
+    valueA: {
+      initialValue: {
+        counter: 8,
       },
-      list: {
-        initialValue: [],
-        allowDirectMutation: true,
-      },
-      todo: createHttpEntry({
-        query: (req: { id: number }) =>
-          `https://jsonplaceholder.typicode.com/todos/${req.id}`,
-        expireMs: 15000,
-      }),
-      todoList: createHttpEntry({
-        query: 'https://jsonplaceholder.typicode.com/todos',
-        expireMs: 15000,
-      }),
-      user: createHttpEntry({
-        query: (req: { id: number }) =>
-          `https://jsonplaceholder.typicode.com/users/${req.id}`,
-        expireMs: 120000,
-      }),
-      albumList: createHttpEntry({
-        query: `https://jsonplaceholder.typicode.com/albums`,
-        expireMs: 120000,
-        autoRefresh: true,
-      }),
-      album: createHttpEntry({
-        query: (req: { id: number }) =>
-          `https://jsonplaceholder.typicode.com/albums/${req.id}`,
-        expireMs: 120000,
-      }),
-      albumPhotosList: createHttpEntry({
-        query: (req: { id: number }) =>
-          `https://jsonplaceholder.typicode.com/album/${req.id}/photos`,
-        expireMs: 120000,
-        autoRefresh: true,
-      }),
+      allowDirectMutation: true,
     },
-  };
+    list: {
+      initialValue: [],
+      allowDirectMutation: true,
+    },
+    todo: createHttpEntry<Todo, number>({
+      query: (req) => `https://jsonplaceholder.typicode.com/todos/${req}`,
+      expireMs: 15000,
+    }),
+    todoList: createHttpEntry<Todo[]>({
+      query: 'https://jsonplaceholder.typicode.com/todos',
+      expireMs: 15000,
+    }),
+    user: createHttpEntry<User, number>({
+      query: (req) => `https://jsonplaceholder.typicode.com/users/${req}`,
+      expireMs: 120000,
+    }),
+    albumList: createHttpEntry<Album[]>({
+      query: `https://jsonplaceholder.typicode.com/albums`,
+      expireMs: 120000,
+      autoRefresh: true,
+    }),
+    album: createHttpEntry<Album, number>({
+      query: (req) => `https://jsonplaceholder.typicode.com/albums/${req}`,
+      expireMs: 120000,
+    }),
+    albumPhotosList: createHttpEntry<Photo[], number>({
+      query: (req) =>
+        `https://jsonplaceholder.typicode.com/album/${req}/photos`,
+      expireMs: 120000,
+      autoRefresh: true,
+    }),
+  },
+};

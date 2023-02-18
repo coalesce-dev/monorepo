@@ -4,8 +4,8 @@ import { useTodo, useUser } from './storeHooks';
 export function TodoCard({ id }: { id: number }) {
   const [isVisible, setIsVisible] = useState(false);
 
-  const todo = useTodo(isVisible ? id : undefined);
-  const user = useUser(isVisible && todo ? todo.userId : undefined);
+  const todo = useTodo(id, !isVisible);
+  const user = useUser(todo?.userId, !isVisible);
 
   const [div, setDiv] = useState<HTMLDivElement | null>(null);
 

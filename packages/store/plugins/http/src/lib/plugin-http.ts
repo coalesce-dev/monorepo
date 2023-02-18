@@ -6,6 +6,10 @@ import {
   SharedStoreSchemaEntry,
 } from '@coalesce.dev/store-common';
 
+export const PluginId = 'http';
+
+export type HttpPluginEntryType = { http: HttpPluginConfig };
+
 export interface HttpPluginConfig<R = void> {
   query: string | ((data: R) => string);
   expireMs?: number;
@@ -19,19 +23,20 @@ export interface HttpPluginData<Value> {
   v: Value;
 }
 
-export function createHttpEntry<V, R>(
-  config: HttpPluginConfig<R>,
-  pluginId = 'http'
-): SharedStoreSchemaEntry<
-  Record<string, HttpPluginData<V>>,
-  string,
-  HttpPluginConfig<R>
-> {
+export type HttpPluginEntry<Req, Res> = SharedStoreSchemaEntry<
+  Record<string, HttpPluginData<Res>>,
+  typeof PluginId,
+  HttpPluginConfig<Req>
+>;
+
+export function createHttpEntry<Res, Req = void>(
+  config: HttpPluginConfig<Req>
+): HttpPluginEntry<Req, Res> {
   return {
     initialHydrate: false,
     allowDirectMutation: false,
     initialValue: {},
-    pluginId,
+    pluginId: PluginId,
     config,
   };
 }

@@ -1,13 +1,13 @@
-import { useAlbum, useAlbumPhotos, useUser } from './storeHooks';
+import { useAlbum, useAlbumPhotosList, useUser } from './storeHooks';
 import { useEffect, useState } from 'react';
 import { PhotoCard } from './PhotoCard';
 
 export function AlbumCard({ id }: { id: number }) {
   const [isVisible, setIsVisible] = useState(false);
 
-  const album = useAlbum(isVisible ? id : undefined);
+  const album = useAlbum(id, !isVisible);
   const user = useUser(album?.userId);
-  const photos = useAlbumPhotos(isVisible ? id : undefined);
+  const photos = useAlbumPhotosList(id, !isVisible);
 
   const [div, setDiv] = useState<HTMLDivElement | null>(null);
 
