@@ -27,4 +27,8 @@ export const {
   useAlbumList,
   useAlbumPhotosList,
   useUser,
+
+  useAlbumSuspended,
+  useUserSuspended,
+  useAlbumPhotosListSuspended,
 } = createHttpPluginHooks(schema);

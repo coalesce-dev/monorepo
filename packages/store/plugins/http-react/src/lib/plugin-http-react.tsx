@@ -16,14 +16,16 @@ import {
 export function useFetchValue<T extends RootState, K extends keyof T & string>(
   key: K,
   req: unknown,
-  prevent?: boolean
+  prevent?: boolean,
+  suspend?: boolean
 ) {
   return (
     useSharedValue<T, readonly [K, string] | null>(
       prevent || req === undefined
         ? null
         : ([key, JSON.stringify(req)] as const),
-      []
+      [],
+      suspend
     ) as { v?: Path<T, [K, string, 'v']> }
   )?.v;
 }
@@ -46,6 +48,21 @@ type Hooks<T extends SharedStoreSchema<RootState, HttpPluginEntryType>> = {
           prevent?: boolean
         ) => Response | undefined
     : never;
+} & {
+  [K in keyof T['entries'] & string as T['entries'][K] extends HttpPluginEntry<
+    any,
+    any
+  >
+    ? `use${Capitalize<K>}Suspended`
+    : never]: T['entries'][K] extends SharedStoreSchemaEntry<
+    Record<string, HttpPluginData<infer Response>>,
+    typeof PluginId,
+    HttpPluginConfig<infer Request>
+  >
+    ? Request extends void
+      ? () => Response
+      : (request: Request) => Response
+    : never;
 };
 
 export function createHttpPluginHooks<
@@ -57,13 +74,26 @@ export function createHttpPluginHooks<
         return undefined;
       }
       return [
-        'use' + k[0].toUpperCase() + k.substring(1),
-        function (req: unknown, prevent?: boolean) {
-          return useFetchValue(k, arguments.length === 0 ? null : req, prevent);
-        },
+        [
+          'use' + k[0].toUpperCase() + k.substring(1),
+          function (req: unknown, prevent?: boolean) {
+            return useFetchValue(
+              k,
+              arguments.length === 0 ? null : req,
+              prevent
+            );
+          },
+        ],
+        [
+          'use' + k[0].toUpperCase() + k.substring(1) + 'Suspended',
+          function (req: unknown) {
+            return useFetchValue(k, req, false, true);
+          },
+        ],
       ] as const;
     })
-    .filter(Boolean) as [string, unknown][];
+    .filter(Boolean)
+    .flat(1) as [string, unknown][];
   console.log(entries);
   return Object.fromEntries(entries) as Hooks<T>;
 }

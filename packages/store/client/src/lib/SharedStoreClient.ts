@@ -21,6 +21,7 @@ import {
   Selector,
 } from '@coalesce.dev/store-common';
 import { Path } from 'ts-toolbelt/out/Object/Path';
+import { TrackedPromise } from './TrackedPromise';
 
 const DEFAULT_TIMEOUT = 60_000;
 const ALIVE_POLL_INTERVAL_MS = 2000;
@@ -52,6 +53,8 @@ export class SharedStoreClient<T extends RootState> {
 
   private _isSynced = false;
   private _syncPromise?: Promise<void>;
+
+  private _stable = new Map<string, TrackedPromise<unknown>>();
 
   constructor(workerFactory: () => SharedWorker, schema: SharedStoreSchema<T>) {
     this._workerFactory = workerFactory;
@@ -248,7 +251,19 @@ export class SharedStoreClient<T extends RootState> {
         value,
       },
     ]);
+    await new Promise((resolve) => setTimeout(resolve, Math.random() * 10_000));
     return value;
+  }
+
+  public selectValueTracked<S extends Selector>(
+    selector: S
+  ): TrackedPromise<Path<T, S>> {
+    const key = 'S:' + JSON.stringify(selector);
+    const existing = this._stable.get(key);
+    if (existing) return existing as TrackedPromise<Path<T, S>>;
+    const promise = new TrackedPromise(this.selectValue(selector));
+    this._stable.set(key, promise);
+    return promise;
   }
 
   public selectLocalValue<S extends Selector>(selector: S) {

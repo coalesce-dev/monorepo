@@ -1,39 +1,54 @@
-import { useAlbum, useAlbumPhotosList, useUser } from './storeHooks';
-import { useEffect, useState } from 'react';
+import {
+  useAlbumPhotosListSuspended,
+  useAlbumSuspended,
+  useUserSuspended,
+} from './storeHooks';
+import { Suspense } from 'react';
 import { PhotoCard } from './PhotoCard';
+import { ObservedDiv } from './ObservedDiv';
 
-export function AlbumCard({ id }: { id: number }) {
-  const [isVisible, setIsVisible] = useState(false);
+function UserInfo({ id }: { id: number }) {
+  const user = useUserSuspended(id);
 
-  const album = useAlbum(id, !isVisible);
-  const user = useUser(album?.userId);
-  const photos = useAlbumPhotosList(id, !isVisible);
+  return <h3>{user.name}</h3>;
+}
 
-  const [div, setDiv] = useState<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (!div) return;
-    const observer = new IntersectionObserver((e) => {
-      if (e[0].isIntersecting) {
-        setIsVisible(true);
-      }
-    });
-    observer.observe(div);
-    return () => observer.disconnect();
-  }, [div]);
+function AlbumPhotoList({ id }: { id: number }) {
+  const photos = useAlbumPhotosListSuspended(id);
 
   return (
-    <div
+    <>
+      {photos.map((p, i) => (
+        <PhotoCard key={i} photo={p} />
+      ))}
+    </>
+  );
+}
+
+function AlbumCardContent({ id }: { id: number }) {
+  const album = useAlbumSuspended(id);
+
+  return (
+    <>
+      <h2>{album.title}</h2>
+      <Suspense fallback={<div>Loading user info...</div>}>
+        <UserInfo id={album.userId} />
+      </Suspense>
+      <Suspense fallback={<div>Loading photo list...</div>}>
+        <AlbumPhotoList id={id} />
+      </Suspense>
+    </>
+  );
+}
+
+export function AlbumCard({ id }: { id: number }) {
+  return (
+    <ObservedDiv
       style={{ background: '#eee', minHeight: 200, padding: '0.5rem' }}
-      ref={setDiv}
     >
-      {!album ? undefined : (
-        <>
-          <h2>{album.title}</h2>
-          <h3>{user?.name ?? 'Loading...'}</h3>
-          {!!photos && photos.map((p, i) => <PhotoCard key={i} photo={p} />)}
-        </>
-      )}
-    </div>
+      <Suspense fallback={<h2>Loading album data... ({id})</h2>}>
+        <AlbumCardContent id={id} />
+      </Suspense>
+    </ObservedDiv>
   );
 }

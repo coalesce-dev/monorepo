@@ -32,11 +32,19 @@ export function useForceRerender() {
 
 export function useSharedValue<T extends RootState, S extends Selector | null>(
   selector: S,
-  deps?: unknown[]
+  deps?: unknown[],
+  suspend?: boolean
 ) {
   const rerender = useForceRerender();
   const stableSelector = useStableArray(selector);
   const store = useSharedStore<T>();
+  if (suspend && selector) {
+    const suspender = store.selectValueTracked(selector);
+    if (!suspender.isComplete) {
+      console.log('Suspending', selector);
+      throw suspender.promise;
+    }
+  }
   useEffect(
     () => {
       if (stableSelector) {
