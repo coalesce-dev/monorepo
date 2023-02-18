@@ -8,6 +8,8 @@ import {
 
 export const PluginId = 'http';
 
+export type HttpPluginState<T> = Record<string, HttpPluginData<T>>;
+
 export type HttpPluginEntryType = { http: HttpPluginConfig };
 
 export interface HttpPluginConfig<R = void> {
@@ -41,7 +43,7 @@ export function createHttpEntry<Res, Req = void>(
   };
 }
 
-export class HttpPlugin implements SharedStorePlugin<HttpPluginConfig> {
+class HttpPluginImpl implements SharedStorePlugin<HttpPluginConfig> {
   private _purge = new Map<string, Map<string | number, number>>();
 
   async intercept<Value>(
@@ -92,3 +94,7 @@ export class HttpPlugin implements SharedStorePlugin<HttpPluginConfig> {
     return store.select(path);
   }
 }
+
+export const HttpPlugin = {
+  http: new HttpPluginImpl(),
+};

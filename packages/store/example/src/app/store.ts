@@ -1,7 +1,7 @@
 import { SharedStoreClient } from '@coalesce.dev/store-client';
-import { schema } from '../schema';
+import { schema, StoreState } from '../schema';
 
-export const storeClient = new SharedStoreClient(
+export const storeClient = new SharedStoreClient<StoreState>(
   () =>
     new SharedWorker(new URL('../worker', import.meta.url), {
       name: 'example-worker',

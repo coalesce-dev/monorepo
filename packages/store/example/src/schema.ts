@@ -1,6 +1,6 @@
 import {
   createHttpEntry,
-  HttpPluginData,
+  HttpPluginState,
 } from '@coalesce.dev/store-plugins-http';
 
 export type Todo = {
@@ -35,12 +35,12 @@ export type StoreState = {
     counter: number;
   };
   list: number[];
-  todo: Record<string, HttpPluginData<Todo>>;
-  todoList: Record<string, HttpPluginData<Todo[]>>;
-  user: Record<string, HttpPluginData<User>>;
-  album: Record<string, HttpPluginData<Album>>;
-  albumList: Record<string, HttpPluginData<Album[]>>;
-  albumPhotosList: Record<string, HttpPluginData<Photo[]>>;
+  todo: HttpPluginState<Todo>;
+  todoList: HttpPluginState<Todo[]>;
+  user: HttpPluginState<User>;
+  album: HttpPluginState<Album>;
+  albumList: HttpPluginState<Album[]>;
+  albumPhotosList: HttpPluginState<Photo[]>;
 };
 
 export const schema = {
