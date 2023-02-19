@@ -8,7 +8,6 @@ export class TrackedPromise<T> {
     this._promise = promise;
     promise.then(() => {
       this._complete = true;
-      console.log('Unsuspending');
     });
     this.then = promise.then.bind(promise);
   }

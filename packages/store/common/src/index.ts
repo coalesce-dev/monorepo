@@ -6,3 +6,5 @@ export * from './lib/ResponseUtils';
 export * from './lib/SharedStoreSchema';
 export * from './lib/Plugins';
 export * from './lib/ISharedStore';
+export * from './lib/SharedStore';
+export * from './lib/StoreHandler';

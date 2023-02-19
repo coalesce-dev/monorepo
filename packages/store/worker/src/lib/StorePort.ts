@@ -1,24 +1,22 @@
-import { SharedStore } from './SharedStore';
 import {
   createErrorResponse,
   createId,
   createSuccessResponse,
   EventMessage,
-  KeepAliveRequest,
   RequestMessage,
+  RequestWithoutAlive,
   ResponseMessage,
   RootState,
 } from '@coalesce.dev/store-common';
-
-export type RequestWithoutAlive = Exclude<RequestMessage, KeepAliveRequest>;
+import { WorkerStoreHandler } from './WorkerStoreHandler';
 
 export class StorePort<T extends RootState> {
   private _hasClosed = false;
   private readonly _id: string;
-  private _store: SharedStore<T>;
+  private _handler: WorkerStoreHandler<T>;
 
   constructor(
-    store: SharedStore<T>,
+    handler: WorkerStoreHandler<T>,
     public readonly port:
       | MessagePort
       | Pick<typeof globalThis, 'onmessage' | 'postMessage'>,
@@ -27,7 +25,7 @@ export class StorePort<T extends RootState> {
     ) => ResponseMessage | PromiseLike<ResponseMessage>
   ) {
     this._id = createId();
-    this._store = store;
+    this._handler = handler;
 
     let deadPortTimeout: number;
 
@@ -35,8 +33,8 @@ export class StorePort<T extends RootState> {
       stype: 'e',
       type: 'i',
       data: {
-        instanceId: store.instanceId,
-        schemaVersion: store.schema.version,
+        instanceId: handler.store.instanceId,
+        schemaVersion: handler.store.schema.version,
       },
     });
 
@@ -48,8 +46,8 @@ export class StorePort<T extends RootState> {
       clearTimeout(deadPortTimeout);
       deadPortTimeout = setTimeout(() => {
         console.debug('Port', this.id, 'timed out, removing');
-        store.killDeadPort(this);
-      }, store.deadPortTimeout) as unknown as number;
+        handler.killDeadPort(this);
+      }, handler.deadPortTimeout) as unknown as number;
 
       const req = e.data as RequestMessage;
       switch (req.type) {
@@ -81,7 +79,7 @@ export class StorePort<T extends RootState> {
     try {
       this.port.postMessage(msg);
     } catch {
-      this._store.killDeadPort(this);
+      this._handler.killDeadPort(this);
     }
   }
 

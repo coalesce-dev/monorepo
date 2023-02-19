@@ -4,7 +4,7 @@ import {
   RequestMessage,
   SelectValueResponse,
   SuccessResponse,
-} from '@coalesce.dev/store-common';
+} from './Messages';
 
 export function createSuccessResponse(req: RequestMessage): SuccessResponse {
   return {

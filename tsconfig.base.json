@@ -20,6 +20,9 @@
         "packages/store/client-react/src/index.ts"
       ],
       "@coalesce.dev/store-common": ["packages/store/common/src/index.ts"],
+      "@coalesce.dev/store-example-shared": [
+        "packages/store/example-shared/src/index.ts"
+      ],
       "@coalesce.dev/store-plugins-http": [
         "packages/store/plugins/http/src/index.ts"
       ],

@@ -80,3 +80,5 @@ export type ResponseMessage =
   | GetFullValueResponse
   | SelectValueResponse;
 export type EventMessage = InfoEvent | MutateEvent;
+
+export type RequestWithoutAlive = Exclude<RequestMessage, KeepAliveRequest>;

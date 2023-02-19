@@ -1,21 +1,20 @@
 import { applyPatches, enablePatches, Patch } from 'immer';
-import { RequestWithoutAlive, StorePort } from './StorePort';
+import { StoreHandler } from './StoreHandler';
+import { RootState, SharedStoreSchema } from './SharedStoreSchema';
+import { createId } from './CreateId';
 import {
-  RootState,
-  SharedStoreSchema,
-  createId,
-  createInitialState,
   createFullValueResponse,
-  createSuccessResponse,
-  EventMessage,
-  SharedStorePlugin,
-  Selector,
   createSelectValueResponse,
-  ISharedStore,
+  createSuccessResponse,
+} from './ResponseUtils';
+import { ISharedStore } from './ISharedStore';
+import {
+  RequestWithoutAlive,
+  Selector,
   SelectValueRequest,
   SelectValueResponse,
-} from '@coalesce.dev/store-common';
-import { get, set } from 'idb-keyval';
+} from './Messages';
+import { SharedStorePlugin } from './Plugins';
 
 enablePatches();
 
@@ -35,49 +34,25 @@ export class SharedStore<
   EntryTypes extends Record<string, unknown> = {}
 > implements ISharedStore<T, EntryTypes>
 {
-  private _ports = new Set<StorePort<T>>();
   private readonly _instanceId: string;
   private _state!: T;
   private readonly _schema: SharedStoreSchema<T, EntryTypes>;
-  private _deadPortTimeout = 60_000;
-  private _storageKey = `SStore__${this.storeId}`;
   private readonly _init: Promise<void>;
-  private _lastWriteTs = 0;
-  private _writeInterval = 1000;
-  private _writeTimeout: number | undefined;
   private _locks = new Map<string, PromiseLike<unknown>>();
 
   constructor(
     public readonly storeId: string,
     schema: SharedStoreSchema<T, EntryTypes>,
+    private readonly _handler: StoreHandler<T>,
     private readonly _plugins: Plugins<EntryTypes>
   ) {
     this._instanceId = createId();
     this._schema = schema;
-    this.startListening();
 
-    this._init = (async () => {
-      const ls = await get(this._storageKey);
-      this._state = { ...createInitialState(schema), ...ls };
-      console.log('Initial State:', this._state);
-    })();
+    this._init = _handler.init(this);
   }
 
-  private startListening() {
-    if ('onconnect' in globalThis) {
-      onconnect = (e) => {
-        this._ports.add(
-          new StorePort(this, e.ports[0], this.handleMessage.bind(this))
-        );
-      };
-    } else {
-      this._ports.add(
-        new StorePort(this, globalThis, this.handleMessage.bind(this))
-      );
-    }
-  }
-
-  private async handleMessage(req: RequestWithoutAlive) {
+  async handleMessage(req: RequestWithoutAlive) {
     await this._init;
     switch (req.type) {
       case 'fv': {
@@ -135,24 +110,12 @@ export class SharedStore<
 
   public applyPatches(patches: Patch[]) {
     this._state = applyPatches(this._state, patches);
-    this.broadcastEvent({
+    this._handler.broadcastEvent({
       stype: 'e',
       type: 'm',
       data: patches,
     });
-    if (!this._writeTimeout) {
-      this._writeTimeout = setTimeout(async () => {
-        await this.persist();
-      }, this._lastWriteTs - Date.now() + this._writeInterval);
-    }
-  }
-
-  private async persist() {
-    this._lastWriteTs = Date.now();
-    this._writeTimeout = undefined;
-    console.log('PERSISTING...');
-    await set(this._storageKey, this._state);
-    console.log('PERSISTED');
+    this._handler.notifyMutation();
   }
 
   public select<T>(path: Selector) {
@@ -171,16 +134,16 @@ export class SharedStore<
     return this._state;
   }
 
+  public set state(v: T) {
+    this._state = v;
+  }
+
   private getSchemaEntry(key: string) {
     const entry = this.schema.entries[key];
     if (!entry) {
       throw new Error(`Schema does not have an entry with key '${key}'`);
     }
     return entry;
-  }
-
-  public get deadPortTimeout() {
-    return this._deadPortTimeout;
   }
 
   public get schema() {
@@ -191,19 +154,7 @@ export class SharedStore<
     return this._instanceId;
   }
 
-  private broadcastEvent(msg: EventMessage) {
-    for (const port of Array.from(this._ports)) {
-      port.postMessage(msg);
-    }
-  }
-
   public getWatchCount(path: Selector) {
     return 1; // TODO
-  }
-
-  public killDeadPort(port: StorePort<T>) {
-    console.debug('Killing dead port');
-    this._ports.delete(port);
-    port.close();
   }
 }

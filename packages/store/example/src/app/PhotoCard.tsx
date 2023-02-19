@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Photo } from '../schema';
 import { ObservedDiv } from './ObservedDiv';
+import { Photo } from '@coalesce.dev/store-example-shared';
 
 export function PhotoCard({ photo }: { photo: Photo }) {
   const [isExpanded, setExpanded] = useState(false);

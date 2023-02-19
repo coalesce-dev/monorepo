@@ -1,1 +1,1 @@
-export * from './lib/SharedStore';
+export * from './lib/WorkerStoreHandler';

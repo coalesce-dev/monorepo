@@ -41,7 +41,6 @@ export function useSharedValue<T extends RootState, S extends Selector | null>(
   if (suspend && selector) {
     const suspender = store.selectValueTracked(selector);
     if (!suspender.isComplete) {
-      console.log('Suspending', selector);
       throw suspender.promise;
     }
   }

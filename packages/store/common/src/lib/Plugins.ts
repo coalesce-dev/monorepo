@@ -1,9 +1,7 @@
-import {
-  ISharedStore,
-  RootState,
-  Selector,
-  SharedStoreSchemaEntry,
-} from '@coalesce.dev/store-common';
+import { RootState, SharedStoreSchemaEntry } from './SharedStoreSchema';
+import { ISharedStore } from './ISharedStore';
+import { Selector } from './Messages';
+
 export interface SharedStorePlugin<EntryConfig> {
   intercept<Value>(
     path: Selector,

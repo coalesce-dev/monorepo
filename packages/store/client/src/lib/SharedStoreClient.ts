@@ -10,7 +10,6 @@ import {
   ERR_TIMEOUT,
   EventMessage,
   RequestMessage,
-  ResponseMessage,
   RootState,
   SharedStoreSchema,
   createInitialState,
@@ -22,18 +21,18 @@ import {
 } from '@coalesce.dev/store-common';
 import { Path } from 'ts-toolbelt/out/Object/Path';
 import { TrackedPromise } from './TrackedPromise';
+import { MessageClient, MessageClientFactory } from './MessageClient';
 
 const DEFAULT_TIMEOUT = 60_000;
 const ALIVE_POLL_INTERVAL_MS = 2000;
 const ALIVE_POLL_TIMEOUT_MS = 1500;
-const ALIVE_POLL_INIT_TIMEOUT_MS = DEFAULT_TIMEOUT;
+export const ALIVE_POLL_INIT_TIMEOUT_MS = DEFAULT_TIMEOUT;
 
 enablePatches();
 
 export class SharedStoreClient<T extends RootState> {
-  private _worker: SharedWorker | null = null;
-  private _comm!: MessagePort | Worker;
-  private readonly _workerFactory: () => SharedWorker | Worker;
+  private _messageClient!: MessageClient;
+  private readonly _messageClientFactory: MessageClientFactory<T>;
   private readonly _schema: SharedStoreSchema<T>;
   private readonly _callbacks = new Map<
     number,
@@ -58,10 +57,10 @@ export class SharedStoreClient<T extends RootState> {
   private _stable = new Map<string, TrackedPromise<unknown>>();
 
   constructor(
-    workerFactory: () => SharedWorker | Worker,
+    workerFactory: MessageClientFactory<T>,
     schema: SharedStoreSchema<T>
   ) {
-    this._workerFactory = workerFactory;
+    this._messageClientFactory = workerFactory;
     this._schema = schema;
     this._state = createInitialState<T>(schema);
     this._syncPromise = this.reset();
@@ -75,12 +74,36 @@ export class SharedStoreClient<T extends RootState> {
     });
   }
 
+  async sendKeepAlive(timeout = ALIVE_POLL_TIMEOUT_MS) {
+    try {
+      return await this.makeRequest({ type: 'a', id: -1 }, timeout, true);
+    } catch (err) {
+      if (isTerminatedError(err)) {
+        return;
+      }
+      if (isTimeoutError(err)) {
+        if ('document' in globalThis) {
+          if (globalThis.document.hidden) {
+            console.debug(
+              'Worker is not responding, but document is hidden. Will not reset.'
+            );
+            return;
+          }
+        }
+        console.error('Worker is not responding, will attempt to reset.');
+        this._syncPromise = this.reset();
+        return;
+      } else {
+        throw err;
+      }
+    }
+  }
+
   async reset() {
     const startTime = performance.now();
     console.debug('Sync start...');
     this._isSynced = false;
-    this._worker?.port?.close();
-    if (this._comm && 'terminate' in this._comm) this._comm.terminate();
+    this._messageClient?.dispose();
 
     for (const [id, [, reject]] of Array.from(this._callbacks)) {
       reject(ERR_TERM);
@@ -88,61 +111,34 @@ export class SharedStoreClient<T extends RootState> {
     }
     this._callbacks.clear();
 
-    const worker = this._workerFactory();
-    if ('terminate' in worker) {
-      this._worker = null;
-      this._comm = worker;
-    } else {
-      this._worker = worker;
-      this._comm = worker.port;
-    }
-
-    clearInterval(this._alivePollHandle);
-
-    const sendKeepAlive = (timeout = ALIVE_POLL_TIMEOUT_MS) => {
-      return this.makeRequest({ type: 'a', id: -1 }, timeout, true).catch(
-        (err) => {
-          if (isTerminatedError(err)) {
-            return Promise.resolve(undefined);
-          }
-          if (isTimeoutError(err)) {
-            console.error('Worker is not responding, will attempt to reset.');
-            this._syncPromise = this.reset();
-            return Promise.resolve();
-          } else {
-            return Promise.reject(err);
-          }
-        }
-      );
-    };
-
-    this._comm.onmessage = (e) => {
-      const event = e.data as ResponseMessage | EventMessage;
-      if (event.stype === 'r') {
+    this._messageClient = this._messageClientFactory(this, (msg) => {
+      if (msg.stype === 'r') {
         // Response
-        clearTimeout(event.id);
-        const callback = this._callbacks.get(event.id);
+        clearTimeout(msg.id);
+        const callback = this._callbacks.get(msg.id);
         if (!callback) {
-          console.error('Invalid request ID:', event.id);
+          console.error('Invalid request ID:', msg.id);
         } else {
-          this._callbacks.delete(event.id);
-          if (event.type === 'e') callback[1](event.data);
-          else callback[0]('data' in event ? event.data : undefined);
+          this._callbacks.delete(msg.id);
+          if (msg.type === 'e') callback[1](msg.data);
+          else callback[0]('data' in msg ? msg.data : undefined);
         }
       } else {
         // Event
-        const callbacks = this._eventCallbacks.get(event.type);
+        const callbacks = this._eventCallbacks.get(msg.type);
         if (!callbacks) return;
         for (const cb of callbacks) {
-          cb(event.data);
+          cb(msg.data);
         }
       }
-    };
+    });
 
-    await sendKeepAlive(ALIVE_POLL_INIT_TIMEOUT_MS);
+    clearInterval(this._alivePollHandle);
+
+    await this._messageClient.init();
 
     this._alivePollHandle = setInterval(
-      () => sendKeepAlive(),
+      () => this.sendKeepAlive(),
       ALIVE_POLL_INTERVAL_MS
     ) as unknown as number;
 
@@ -194,7 +190,7 @@ export class SharedStoreClient<T extends RootState> {
         reject(ERR_TIMEOUT);
       }, timeout) as unknown as number;
       this._callbacks.set(id, [resolve as (d: unknown) => void, reject]);
-      this._comm.postMessage({ ...event, id });
+      this._messageClient.sendMessage({ ...event, id });
     });
   }
 

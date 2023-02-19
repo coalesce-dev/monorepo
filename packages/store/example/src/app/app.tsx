@@ -3,8 +3,8 @@ import styles from './app.module.css';
 import { useCallback } from 'react';
 import { useTypedSharedState, useTypedSharedValue } from './storeHooks';
 import { useSharedStore } from '@coalesce.dev/store-client-react';
-import { StoreState } from '../schema';
 import { AlbumList } from './AlbumList';
+import { StoreState } from '@coalesce.dev/store-example-shared';
 
 export function App() {
   const [value, setValue] = useTypedSharedState(['valueA', 'counter'] as const);
@@ -34,9 +34,6 @@ export function App() {
           </li>
         ))}
       </ul>
-      {/*{todos?.map((todo) => (*/}
-      {/*  <TodoCard key={todo.id} id={todo.id} />*/}
-      {/*))}*/}
       <AlbumList />
     </>
   );

@@ -1,10 +1,10 @@
-import { schema, StoreState } from '../schema';
 import { createHttpPluginHooks } from '@coalesce.dev/store-plugins-http-react';
 import { Selector } from '@coalesce.dev/store-common';
 import {
   useSharedState,
   useSharedValue,
 } from '@coalesce.dev/store-client-react';
+import { schema, StoreState } from '@coalesce.dev/store-example-shared';
 
 export function useTypedSharedValue<S extends Selector>(selector: S) {
   return useSharedValue<StoreState, S>(selector);
